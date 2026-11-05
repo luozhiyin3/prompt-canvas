@@ -39,8 +39,8 @@ Analyze the user's rough input and extract:
 2. 'missingDimensions': Array of categories not explicitly defined in the prompt. Available categories: ['shot_type', 'art_style', 'lighting', 'color_mood', 'composition', 'clothing'].
 3. 'recommendedOptionIds': 3 to 6 preset IDs from the following list that best fit the prompt mood: [${availableIds}].`;
 
-    // 默认优先调用 Gemini 官方 API
-    const apiKey = process.env.GEMINI_API_KEY;
+    // 优先调用 DeepSeek API (OpenAI 兼容格式)
+    const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
       // 降级到本地分析
       const localResult = {
@@ -51,21 +51,25 @@ Analyze the user's rough input and extract:
       return NextResponse.json(localResult);
     }
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const res = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\nUser Input: "${input}"` }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: ANALYSIS_SCHEMA
-        }
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: input }
+        ],
+        response_format: { type: 'json_object' }
       })
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('Gemini API Error:', errText);
+      console.error('DeepSeek API Error:', errText);
       // 降级到本地分析
       const localResult = {
         identifiedSubject: input.trim() || 'a person',
@@ -76,7 +80,7 @@ Analyze the user's rough input and extract:
     }
 
     const json = await res.json();
-    const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+    const rawText = json.choices?.[0]?.message?.content;
     const parsedData = JSON.parse(rawText || '{}');
 
     return NextResponse.json(parsedData);
