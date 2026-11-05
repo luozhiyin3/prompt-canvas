@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 245, 247, 250;
-  --background-end-rgb: 255, 255, 255;
+  --foreground-rgb: 241, 245, 249;
+  --background-start-rgb: 2, 6, 23;
+  --background-end-rgb: 15, 23, 42;
 }
 
 body {
@@ -18,8 +18,11 @@ body {
   min-height: 100vh;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* 隐藏滚动条但保留功能 */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

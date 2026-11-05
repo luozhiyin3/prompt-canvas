@@ -1,49 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateImage } from '@/lib/api-clients';
 
-export async function POST(request: NextRequest) {
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const { prompt, tool = 'flux' } = body;
-
-    if (!prompt || typeof prompt !== 'string') {
-      return NextResponse.json(
-        { success: false, error: 'Invalid prompt: expected non-empty string' },
-        { status: 400 }
-      );
+    const { prompt } = await req.json();
+    if (!prompt) {
+      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    // 限制 prompt 长度
-    if (prompt.length > 2000) {
-      return NextResponse.json(
-        { success: false, error: 'Prompt too long: maximum 2000 characters' },
-        { status: 400 }
-      );
+    const falKey = process.env.FAL_KEY;
+    if (!falKey) {
+      // 返回模拟图片 URL 用于开发测试
+      return NextResponse.json({
+        imageUrl: 'https://picsum.photos/seed/' + encodeURIComponent(prompt.substring(0, 20)) + '/1024/576',
+        warning: 'FAL_KEY not configured, using placeholder image'
+      });
     }
 
-    const imageUrl = await generateImage(prompt);
-
-    return NextResponse.json({
-      success: true,
-      imageUrl,
-    });
-  } catch (error) {
-    console.error('Generate API error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+    const res = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${falKey}`,
+        'Content-Type': 'application/json'
       },
-      { status: 500 }
-    );
-  }
-}
+      body: JSON.stringify({
+        prompt: prompt,
+        image_size: 'landscape_16_9',
+        num_inference_steps: 4,
+        enable_safety_checker: true
+      })
+    });
 
-// GET 请求返回 API 状态
-export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    endpoints: ['/api/generate'],
-    methods: ['POST'],
-  });
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Fal.ai API Error:', errorText);
+      return NextResponse.json({ error: `Image API failed: ${errorText}` }, { status: 502 });
+    }
+
+    const data = await res.json();
+    const imageUrl = data.images?.[0]?.url;
+
+    if (!imageUrl) {
+      return NextResponse.json({ error: 'No image URL in response' }, { status: 500 });
+    }
+
+    return NextResponse.json({ imageUrl });
+  } catch (err: any) {
+    console.error('Generate API Error:', err);
+    return NextResponse.json({ error: err.message || 'Generation failed' }, { status: 500 });
+  }
 }

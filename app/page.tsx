@@ -1,239 +1,181 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { GenerationCanvasState, DimensionCategory, PresetOption, AnalysisResult } from '@/types/prompt';
+import { useState } from 'react';
+import { PRESET_OPTIONS } from '@/config/presets';
+import { DimensionCategory, PresetOption, AnalysisResult } from '@/types/prompt';
 import { buildFinalPrompt } from '@/lib/prompt-adapter';
-import InputSection from '@/components/InputSection';
 import DimensionPanel from '@/components/DimensionPanel';
 import CanvasPreview from '@/components/CanvasPreview';
-import PromptExportModal from '@/components/PromptExportModal';
-
-const initialState: GenerationCanvasState = {
-  rawInput: '',
-  targetTool: 'flux',
-  selectedOptions: {},
-  customSubject: '',
-  assembledPrompt: '',
-  isGeneratingImage: false,
-};
 
 export default function Home() {
-  const [state, setState] = useState<GenerationCanvasState>(initialState);
+  const [rawInput, setRawInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [step, setStep] = useState<'input' | 'select' | 'preview'>('input');
+  const [targetTool, setTargetTool] = useState<'midjourney' | 'stablediffusion' | 'flux'>('flux');
+  const [customSubject, setCustomSubject] = useState('');
+  const [missingCategories, setMissingCategories] = useState<DimensionCategory[]>([]);
+  const [recommendedIds, setRecommendedIds] = useState<string[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<Record<DimensionCategory, PresetOption | null>>({
+    shot_type: null,
+    art_style: null,
+    lighting: null,
+    color_mood: null,
+    composition: null,
+    clothing: null,
+  });
 
-  // 处理输入提交
-  const handleInputSubmit = useCallback(async (input: string) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // 1. 调用 LLM 分析输入缺失维度
+  const handleAnalyze = async () => {
+    if (!rawInput.trim()) return;
     setIsAnalyzing(true);
-    setState(prev => ({ ...prev, rawInput: input }));
-
     try {
-      const response = await fetch('/api/analyze', {
+      const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input: rawInput }),
       });
+      const data: AnalysisResult = await res.json();
 
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        setAnalysisResult(data.data);
-        setState(prev => ({
-          ...prev,
-          customSubject: data.data.identifiedSubject,
-          analysisResult: data.data,
-        }));
-        setStep('select');
-      }
-    } catch (error) {
-      console.error('Analysis failed:', error);
+      setCustomSubject(data.identifiedSubject || rawInput);
+      setMissingCategories(data.missingDimensions || []);
+      setRecommendedIds(data.recommendedOptionIds || []);
+    } catch (err) {
+      console.error('Analysis failed', err);
+      setCustomSubject(rawInput);
     } finally {
       setIsAnalyzing(false);
     }
-  }, []);
+  };
 
-  // 处理选项选择
-  const handleSelectOption = useCallback((option: PresetOption) => {
-    setState(prev => {
-      const newSelectedOptions = { ...prev.selectedOptions };
+  // 2. 选中/切换某个维度的预设
+  const handleSelectOption = (option: PresetOption) => {
+    setSelectedOptions((prev) => ({
+      ...prev,
+      [option.category]: prev[option.category]?.id === option.id ? null : option,
+    }));
+  };
 
-      // 如果已选择同一选项，则取消选择
-      if (newSelectedOptions[option.category]?.id === option.id) {
-        delete newSelectedOptions[option.category];
-      } else {
-        newSelectedOptions[option.category] = option;
-      }
+  // 3. 计算当前拼装后的 Prompt
+  const currentPrompt = buildFinalPrompt({
+    rawInput,
+    targetTool,
+    selectedOptions,
+    customSubject: customSubject || rawInput,
+    assembledPrompt: '',
+    isGeneratingImage: isGenerating,
+  });
 
-      const newState = { ...prev, selectedOptions: newSelectedOptions };
-      newState.assembledPrompt = buildFinalPrompt(newState);
-
-      return newState;
-    });
-  }, []);
-
-  // 生成参考图
-  const handleGenerateImage = useCallback(async () => {
-    if (!state.assembledPrompt) return;
-
-    setState(prev => ({ ...prev, isGeneratingImage: true }));
-
+  // 4. 生成/刷新参考图
+  const handleGenerate = async () => {
+    if (!currentPrompt) return;
+    setIsGenerating(true);
     try {
-      const response = await fetch('/api/generate', {
+      const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: state.assembledPrompt,
-          tool: state.targetTool,
-        }),
+        body: JSON.stringify({ prompt: currentPrompt }),
       });
-
-      const data = await response.json();
-
-      if (data.success && data.imageUrl) {
-        setState(prev => ({ ...prev, referenceImageUrl: data.imageUrl }));
-        setStep('preview');
-      }
-    } catch (error) {
-      console.error('Image generation failed:', error);
+      const data = await res.json();
+      if (data.imageUrl) setImageUrl(data.imageUrl);
+    } catch (err) {
+      console.error('Image generation error', err);
     } finally {
-      setState(prev => ({ ...prev, isGeneratingImage: false }));
+      setIsGenerating(false);
     }
-  }, [state.assembledPrompt, state.targetTool]);
-
-  // 重置
-  const handleReset = useCallback(() => {
-    setState(initialState);
-    setAnalysisResult(null);
-    setStep('input');
-  }, []);
+  };
 
   return (
-    <main className="min-h-screen py-8 px-4">
-      {/* 头部 */}
-      <header className="text-center mb-10">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Prompt Canvas
+    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      {/* 顶部状态栏 */}
+      <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+        <h1 className="font-bold text-lg tracking-tight flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+          Prompt Dimensions Studio
         </h1>
-        <p className="mt-2 text-gray-600">AI绘画提示词助手 - 智能补全 · 可视化选择 · 一键生成</p>
-      </header>
-
-      {/* 步骤指示器 */}
-      <div className="max-w-3xl mx-auto mb-8">
-        <div className="flex items-center justify-center gap-2">
-          {(['input', 'select', 'preview'] as const).map((s, i) => (
-            <div key={s} className="flex items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                  step === s
-                    ? 'bg-blue-500 text-white'
-                    : i < ['input', 'select', 'preview'].indexOf(step)
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-500'
-                }`}
-              >
-                {i + 1}
-              </div>
-              {i < 2 && (
-                <div className={`w-16 h-0.5 mx-2 ${
-                  i < ['input', 'select', 'preview'].indexOf(step) ? 'bg-green-500' : 'bg-gray-200'
-                }`} />
-              )}
-            </div>
+        <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs">
+          {(['flux', 'midjourney', 'stablediffusion'] as const).map((tool) => (
+            <button
+              key={tool}
+              onClick={() => setTargetTool(tool)}
+              className={`px-3 py-1.5 rounded-md uppercase font-medium transition-all ${
+                targetTool === tool ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {tool === 'stablediffusion' ? 'SD WebUI' : tool}
+            </button>
           ))}
         </div>
-        <div className="flex justify-center gap-12 mt-2 text-sm text-gray-500">
-          <span>输入描述</span>
-          <span>选择维度</span>
-          <span>生成预览</span>
-        </div>
-      </div>
+      </header>
 
-      {/* 主内容区 */}
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* 步骤1: 输入 */}
-        {step === 'input' && (
-          <InputSection onSubmit={handleInputSubmit} isLoading={isAnalyzing} />
-        )}
-
-        {/* 步骤2: 选择维度 */}
-        {step === 'select' && (
-          <>
-            {/* 显示已识别的主体 */}
-            {analysisResult && (
-              <div className="max-w-3xl mx-auto p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                <p className="text-sm text-blue-800">
-                  <span className="font-medium">识别主体：</span>
-                  {analysisResult.identifiedSubject}
-                </p>
+      {/* 工作区栅格 */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+        {/* 左侧控制区：输入框 + 维度面板 */}
+        <section className="lg:col-span-7 p-6 overflow-y-auto space-y-6 border-r border-slate-800">
+          <div className="space-y-3">
+            <label className="text-xs uppercase font-semibold text-slate-400 tracking-wider">
+              1. 初始描述词 (自然语言)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={rawInput}
+                onChange={(e) => setRawInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+                placeholder="例如：雨夜霓虹街头奔跑的机械少女..."
+                className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500"
+              />
+              <button
+                onClick={handleAnalyze}
+                disabled={isAnalyzing || !rawInput.trim()}
+                className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 text-white font-medium rounded-lg text-sm transition-all flex items-center gap-2"
+              >
+                {isAnalyzing ? '分析中...' : '智能拆解'}
+              </button>
+            </div>
+            {customSubject && (
+              <div className="text-xs text-slate-400 flex items-center gap-2 pt-1">
+                <span className="text-cyan-400">已提取主体:</span>
+                <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-200">
+                  {customSubject}
+                </span>
               </div>
             )}
+          </div>
+
+          {/* 维度分类网格 */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-xs uppercase font-semibold text-slate-400 tracking-wider">
+                2. 维度标签选择
+              </label>
+              <span className="text-xs text-slate-500">
+                {missingCategories.length > 0 ? `AI 建议补充 ${missingCategories.length} 个维度` : '点击卡片切换'}
+              </span>
+            </div>
 
             <DimensionPanel
-              selectedOptions={state.selectedOptions}
-              onSelectOption={handleSelectOption}
-              missingDimensions={analysisResult?.missingDimensions}
+              options={PRESET_OPTIONS}
+              selectedOptions={selectedOptions}
+              missingCategories={missingCategories}
+              recommendedIds={recommendedIds}
+              onSelect={handleSelectOption}
             />
+          </div>
+        </section>
 
-            {/* 预览和导出按钮 */}
-            <div className="flex justify-center gap-4 pt-4">
-              <button
-                onClick={() => setStep('input')}
-                className="px-6 py-3 rounded-xl bg-white text-gray-600 font-medium border border-gray-200 hover:bg-gray-100 transition-all"
-              >
-                返回修改
-              </button>
-              <button
-                onClick={handleGenerateImage}
-                disabled={state.isGeneratingImage || Object.keys(state.selectedOptions).length === 0}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                {state.isGeneratingImage ? '生成中...' : '生成参考图'}
-              </button>
-              <button
-                onClick={() => setShowExportModal(true)}
-                disabled={!state.assembledPrompt}
-                className="px-6 py-3 rounded-xl bg-white text-blue-600 font-medium border border-blue-200 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                导出提示词
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* 步骤3: 预览 */}
-        {step === 'preview' && (
-          <>
-            <CanvasPreview
-              state={state}
-              onGenerate={handleGenerateImage}
-              onReset={handleReset}
-            />
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => setStep('select')}
-                className="px-6 py-3 rounded-xl bg-white text-gray-600 font-medium border border-gray-200 hover:bg-gray-100 transition-all"
-              >
-                继续调整
-              </button>
-              <button
-                onClick={() => setShowExportModal(true)}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium shadow-md hover:shadow-lg transition-all"
-              >
-                导出提示词
-              </button>
-            </div>
-          </>
-        )}
+        {/* 右侧输出区：即时参考图 + 组装提示词 */}
+        <section className="lg:col-span-5 p-6 bg-slate-950 flex flex-col justify-between">
+          <CanvasPreview
+            imageUrl={imageUrl}
+            isGenerating={isGenerating}
+            prompt={currentPrompt}
+            targetTool={targetTool}
+            onRegenerate={handleGenerate}
+          />
+        </section>
       </div>
-
-      {/* 导出弹窗 */}
-      <PromptExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        state={state}
-      />
     </main>
   );
 }

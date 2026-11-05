@@ -2,102 +2,113 @@
 
 import { useState } from 'react';
 import { DimensionCategory, PresetOption } from '@/types/prompt';
-import { DIMENSION_META, getOptionsByCategory } from '@/config/presets';
-import OptionCard from './OptionCard';
+
+const CATEGORY_META: Record<DimensionCategory, { labelZh: string; labelEn: string }> = {
+  shot_type: { labelZh: '景别视角', labelEn: 'Shot Type' },
+  art_style: { labelZh: '艺术风格', labelEn: 'Art Style' },
+  lighting: { labelZh: '光影渲染', labelEn: 'Lighting' },
+  color_mood: { labelZh: '色彩色调', labelEn: 'Color Mood' },
+  composition: { labelZh: '构图法则', labelEn: 'Composition' },
+  clothing: { labelZh: '服饰装扮', labelEn: 'Clothing' },
+};
 
 interface DimensionPanelProps {
-  selectedOptions: Partial<Record<DimensionCategory, PresetOption>>;
-  onSelectOption: (option: PresetOption) => void;
-  missingDimensions?: DimensionCategory[];
+  options: PresetOption[];
+  selectedOptions: Record<DimensionCategory, PresetOption | null>;
+  missingCategories: DimensionCategory[];
+  recommendedIds: string[];
+  onSelect: (option: PresetOption) => void;
 }
 
 export default function DimensionPanel({
+  options,
   selectedOptions,
-  onSelectOption,
-  missingDimensions,
+  missingCategories,
+  recommendedIds,
+  onSelect,
 }: DimensionPanelProps) {
-  const [activeCategory, setActiveCategory] = useState<DimensionCategory>('shot_type');
+  const categories = Object.keys(CATEGORY_META) as DimensionCategory[];
+  const [activeTab, setActiveTab] = useState<DimensionCategory>('art_style');
 
-  const categories = Object.keys(DIMENSION_META) as DimensionCategory[];
-  const options = getOptionsByCategory(activeCategory);
-
-  // 排序：缺失维度排在前面
-  const sortedCategories = [...categories].sort((a, b) => {
-    const aMissing = missingDimensions?.includes(a) ? 0 : 1;
-    const bMissing = missingDimensions?.includes(b) ? 0 : 1;
-    return aMissing - bMissing;
-  });
+  const filteredOptions = options.filter((opt) => opt.category === activeTab);
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
-      {/* 分类标签导航 */}
-      <div className="flex flex-wrap gap-2 mb-6 justify-center">
-        {sortedCategories.map((category) => {
-          const meta = DIMENSION_META[category];
-          const isMissing = missingDimensions?.includes(category);
-          const hasSelection = selectedOptions[category] !== undefined;
+    <div className="space-y-4">
+      {/* 类别 Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-slate-800">
+        {categories.map((cat) => {
+          const isMissing = missingCategories.includes(cat);
+          const isSelected = !!selectedOptions[cat];
 
           return (
             <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                activeCategory === category
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+              key={cat}
+              onClick={() => setActiveTab(cat)}
+              className={`px-3 py-2 text-xs font-medium rounded-t-lg transition-all relative whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === cat
+                  ? 'bg-slate-900 border-t border-x border-slate-700 text-cyan-400'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <span className="mr-1">{meta.icon}</span>
-              {meta.labelZh}
-              {/* 状态指示器 */}
-              {hasSelection && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-              )}
-              {isMissing && !hasSelection && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white animate-pulse" />
+              <span>{CATEGORY_META[cat].labelZh}</span>
+              {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>}
+              {isMissing && !isSelected && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* 当前分类的选项网格 */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">
-            {DIMENSION_META[activeCategory].icon} {DIMENSION_META[activeCategory].labelZh}
-            <span className="ml-2 text-sm font-normal text-gray-500">
-              {DIMENSION_META[activeCategory].labelEn}
-            </span>
-          </h3>
-          {selectedOptions[activeCategory] && (
-            <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm">
-              已选择: {selectedOptions[activeCategory]?.labelZh}
-            </span>
-          )}
-        </div>
+      {/* 选项网格 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-[520px] overflow-y-auto pr-1">
+        {filteredOptions.map((opt) => {
+          const isSelected = selectedOptions[opt.category]?.id === opt.id;
+          const isRecommended = recommendedIds.includes(opt.id);
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {options.map((option) => (
-            <OptionCard
-              key={option.id}
-              option={option}
-              isSelected={selectedOptions[activeCategory]?.id === option.id}
-              onSelect={onSelectOption}
-            />
-          ))}
-        </div>
+          return (
+            <div
+              key={opt.id}
+              onClick={() => onSelect(opt)}
+              className={`group relative rounded-lg border overflow-hidden cursor-pointer transition-all duration-200 ${
+                isSelected
+                  ? 'border-cyan-400 ring-2 ring-cyan-400/20 bg-cyan-950/20'
+                  : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+              }`}
+            >
+              {/* 缩略图容器 (WebP 静态预设) */}
+              <div className="aspect-square relative w-full bg-slate-950 overflow-hidden">
+                <img
+                  src={opt.previewImage}
+                  alt={opt.labelZh}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    const label = encodeURIComponent(opt.labelZh);
+                    target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" fill="%230f172a"><rect x="8" y="8" width="240" height="240" rx="12" fill="%231e293b" stroke="%23334155" stroke-width="2"/><text x="50%" y="50%" fill="%2338bdf8" text-anchor="middle" font-size="14" font-family="sans-serif">${label}</text></svg>`;
+                  }}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                {isRecommended && (
+                  <span className="absolute top-1.5 left-1.5 bg-amber-500/90 text-black text-[10px] font-bold px-1.5 py-0.5 rounded">
+                    AI 推荐
+                  </span>
+                )}
+                {isSelected && (
+                  <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-cyan-400 flex items-center justify-center text-black text-[10px] font-bold">
+                    ✓
+                  </div>
+                )}
+              </div>
+
+              {/* 标签标题 */}
+              <div className="p-2">
+                <div className="text-xs font-medium text-slate-200 truncate">{opt.labelZh}</div>
+                <div className="text-[10px] text-slate-500 truncate">{opt.labelEn}</div>
+              </div>
+            </div>
+          );
+        })}
       </div>
-
-      {/* 缺失维度提示 */}
-      {missingDimensions && missingDimensions.length > 0 && (
-        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-xl">
-          <p className="text-sm text-orange-800">
-            <span className="font-medium">建议补充：</span>
-            {missingDimensions.map((dim) => DIMENSION_META[dim].labelZh).join('、')}
-          </p>
-        </div>
-      )}
     </div>
   );
 }

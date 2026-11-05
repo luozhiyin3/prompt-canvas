@@ -1,90 +1,82 @@
 'use client';
 
-import { GenerationCanvasState } from '@/types/prompt';
+import { useState } from 'react';
 
 interface CanvasPreviewProps {
-  state: GenerationCanvasState;
-  onGenerate: () => void;
-  onReset: () => void;
+  imageUrl: string | null;
+  isGenerating: boolean;
+  prompt: string;
+  targetTool: string;
+  onRegenerate: () => void;
 }
 
-export default function CanvasPreview({ state, onGenerate, onReset }: CanvasPreviewProps) {
+export default function CanvasPreview({
+  imageUrl,
+  isGenerating,
+  prompt,
+  targetTool,
+  onRegenerate,
+}: CanvasPreviewProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (!prompt) return;
+    navigator.clipboard.writeText(prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-        {/* 预览区域 */}
-        <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-          {state.referenceImageUrl ? (
-            <img
-              src={state.referenceImageUrl}
-              alt="Generated preview"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : state.isGeneratingImage ? (
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative">
-                <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin border-t-blue-500" />
-                <span className="absolute inset-0 flex items-center justify-center text-2xl">🎨</span>
-              </div>
-              <p className="text-gray-600 font-medium">正在生成参考图...</p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-4 text-gray-400">
-              <svg className="w-20 h-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <p className="text-lg font-medium">选择维度后生成参考图</p>
-            </div>
-          )}
-        </div>
-
-        {/* 当前提示词预览 */}
-        <div className="p-4 border-t border-gray-100">
-          <div className="flex items-start gap-2">
-            <span className="text-sm font-medium text-gray-500 shrink-0">Prompt:</span>
-            <p className="text-sm text-gray-700 line-clamp-2 flex-1">
-              {state.assembledPrompt || '尚未组装提示词'}
-            </p>
+    <div className="flex flex-col h-full space-y-4">
+      {/* 预览视窗 */}
+      <div className="relative flex-1 min-h-[300px] w-full bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex items-center justify-center">
+        {imageUrl ? (
+          <img src={imageUrl} alt="AI Generation Preview" className="w-full h-full object-contain" />
+        ) : (
+          <div className="text-center p-6 space-y-2 text-slate-500">
+            <div className="text-4xl">🎨</div>
+            <p className="text-xs">选择维度或点击下方"生成参考图"查看效果</p>
           </div>
-        </div>
+        )}
 
-        {/* 操作按钮 */}
-        <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-3">
-          <button
-            onClick={onGenerate}
-            disabled={state.isGeneratingImage || !state.assembledPrompt}
-            className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            {state.isGeneratingImage ? '生成中...' : '生成参考图'}
-          </button>
-          <button
-            onClick={onReset}
-            className="px-4 py-3 rounded-xl bg-white text-gray-600 font-medium border border-gray-200 hover:bg-gray-100 transition-all"
-          >
-            重置
-          </button>
-        </div>
+        {isGenerating && (
+          <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center space-y-2">
+            <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-xs font-mono text-cyan-300">Flux.1-schnell 生成中 (~1.5s)...</span>
+          </div>
+        )}
       </div>
 
-      {/* 已选维度摘要 */}
-      <div className="mt-4 p-4 bg-white rounded-xl border border-gray-200">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">已选维度</h4>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(state.selectedOptions).map(([category, option]) => (
-            option && (
-              <span
-                key={category}
-                className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm"
-              >
-                {option.labelZh}
-              </span>
-            )
-          ))}
-          {Object.keys(state.selectedOptions).length === 0 && (
-            <span className="text-sm text-gray-400">尚未选择任何维度</span>
-          )}
+      {/* 拼装后的提示词文本框 */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-xs uppercase font-semibold text-slate-400 tracking-wider">
+            最终生成提示词 ({targetTool.toUpperCase()})
+          </label>
+          <button
+            onClick={handleCopy}
+            className="text-xs text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+          >
+            {copied ? '已复制到剪贴板 ✓' : '复制提示词'}
+          </button>
         </div>
+        <textarea
+          readOnly
+          rows={3}
+          value={prompt}
+          placeholder="构建出的最终英文 Prompt 将展示在此处..."
+          className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs font-mono text-slate-300 resize-none focus:outline-none"
+        />
       </div>
+
+      {/* 触发操作按钮 */}
+      <button
+        onClick={onRegenerate}
+        disabled={isGenerating || !prompt.trim()}
+        className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-800 disabled:to-slate-800 text-white font-medium rounded-lg text-sm shadow-lg shadow-cyan-950 transition-all"
+      >
+        {imageUrl ? '重新生成参考图' : '生成参考图 (1-2s)'}
+      </button>
     </div>
   );
 }

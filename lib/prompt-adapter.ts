@@ -15,9 +15,9 @@ const TOOL_SUFFIX: Record<TargetTool, string> = {
 };
 
 // 从选中选项提取 prompt tokens
-function extractTokens(selectedOptions: Partial<Record<DimensionCategory, PresetOption>>): string[] {
+function extractTokens(selectedOptions: Record<DimensionCategory, PresetOption | null>): string[] {
   return Object.values(selectedOptions)
-    .filter((opt): opt is PresetOption => opt !== null && opt !== undefined)
+    .filter((opt): opt is PresetOption => opt !== null)
     .map(opt => opt.promptToken);
 }
 

@@ -33,7 +33,7 @@ export type TargetTool = 'midjourney' | 'stablediffusion' | 'flux';
 export interface GenerationCanvasState {
   rawInput: string;
   targetTool: TargetTool;
-  selectedOptions: Partial<Record<DimensionCategory, PresetOption>>;
+  selectedOptions: Record<DimensionCategory, PresetOption | null>;
   customSubject: string;
   assembledPrompt: string;
   referenceImageUrl?: string;
