@@ -37,8 +37,15 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error('SiliconFlow API Error:', errorText);
-      return NextResponse.json({ error: `Image API failed: ${errorText}` }, { status: 502 });
+      console.error('SiliconFlow API Error:', {
+        status: res.status,
+        statusText: res.statusText,
+        error: errorText,
+        prompt: prompt.substring(0, 100)
+      });
+      return NextResponse.json({ 
+        error: `Image API failed: ${res.status} ${errorText.substring(0, 200)}` 
+      }, { status: 502 });
     }
 
     const data = await res.json();
