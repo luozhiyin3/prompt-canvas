@@ -10,37 +10,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    const falKey = process.env.FAL_KEY;
-    if (!falKey) {
+    // 优先调用硅基流动 API
+    const siliconFlowKey = process.env.SILICONFLOW_API_KEY;
+    if (!siliconFlowKey) {
       // 返回模拟图片 URL 用于开发测试
       return NextResponse.json({
         imageUrl: 'https://picsum.photos/seed/' + encodeURIComponent(prompt.substring(0, 20)) + '/1024/576',
-        warning: 'FAL_KEY not configured, using placeholder image'
+        warning: 'SILICONFLOW_API_KEY not configured, using placeholder image'
       });
     }
 
-    const res = await fetch('https://queue.fal.run/fal-ai/flux/schnell', {
+    const res = await fetch('https://api.siliconflow.cn/v1/images/generations', {
       method: 'POST',
       headers: {
-        'Authorization': `Key ${falKey}`,
+        'Authorization': `Bearer ${siliconFlowKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        model: 'black-forest-labs/FLUX.1-schnell',
         prompt: prompt,
-        image_size: 'landscape_16_9',
+        image_size: '1024x576',
         num_inference_steps: 4,
-        enable_safety_checker: true
+        batch_size: 1
       })
     });
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error('Fal.ai API Error:', errorText);
+      console.error('SiliconFlow API Error:', errorText);
       return NextResponse.json({ error: `Image API failed: ${errorText}` }, { status: 502 });
     }
 
     const data = await res.json();
-    const imageUrl = data.images?.[0]?.url;
+    const imageUrl = data.data?.[0]?.url;
 
     if (!imageUrl) {
       return NextResponse.json({ error: 'No image URL in response' }, { status: 500 });
