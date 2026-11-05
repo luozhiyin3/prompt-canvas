@@ -37,6 +37,7 @@ export default function Home() {
         body: JSON.stringify({ input: rawInput }),
       });
       const data: AnalysisResult = await res.json();
+      console.log('分析结果:', data); // 调试：查看返回数据
 
       setCustomSubject(data.identifiedSubject || rawInput);
       setMissingCategories(data.missingDimensions || []);
