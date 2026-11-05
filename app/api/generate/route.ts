@@ -27,11 +27,9 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'black-forest-labs/FLUX.1-schnell',
+        model: 'Tongyi-MAI/Z-Image-Turbo',
         prompt: prompt,
-        image_size: '1024x576',
-        num_inference_steps: 4,
-        batch_size: 1
+        image_size: '1024x576'
       })
     });
 
@@ -49,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json();
-    const imageUrl = data.data?.[0]?.url;
+    const imageUrl = data.images?.[0]?.url || data.data?.[0]?.url;
 
     if (!imageUrl) {
       return NextResponse.json({ error: 'No image URL in response' }, { status: 500 });
