@@ -4,27 +4,6 @@ import { PRESET_OPTIONS } from '@/config/presets';
 export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
 
-const ANALYSIS_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    identifiedSubject: {
-      type: "STRING",
-      description: "Translated and refined English core subject of the prompt."
-    },
-    missingDimensions: {
-      type: "ARRAY",
-      items: { type: "STRING" },
-      description: "List of dimension category strings missing from input (shot_type, art_style, lighting, color_mood, composition, clothing)."
-    },
-    recommendedOptionIds: {
-      type: "ARRAY",
-      items: { type: "STRING" },
-      description: "List of 3-6 preset IDs matching the context from the provided catalog."
-    }
-  },
-  required: ["identifiedSubject", "missingDimensions", "recommendedOptionIds"]
-};
-
 export async function POST(req: NextRequest) {
   try {
     const { input } = await req.json();
@@ -36,7 +15,7 @@ export async function POST(req: NextRequest) {
     const systemPrompt = `You are an AI Image Prompt Architect.
 Analyze the user's rough input and extract:
 1. 'identifiedSubject': Clean English prompt phrase describing the core subject.
-2. 'missingDimensions': Array of categories not explicitly defined in the prompt. Available categories: ['shot_type', 'art_style', 'lighting', 'color_mood', 'composition', 'clothing'].
+2. 'missingDimensions': Array of categories not explicitly defined in the prompt. Available categories: ['shot_type', 'art_style', 'lighting', 'color_mood', 'composition', 'clothing', 'mood', 'technique', 'perspective', 'texture', 'subject', 'environment'].
 3. 'recommendedOptionIds': 3 to 6 preset IDs from the following list that best fit the prompt mood: [${availableIds}].`;
 
     // 优先调用 DeepSeek API (OpenAI 兼容格式)
@@ -45,7 +24,7 @@ Analyze the user's rough input and extract:
       // 降级到本地分析
       const localResult = {
         identifiedSubject: input.trim() || 'a person',
-        missingDimensions: ['shot_type', 'art_style', 'lighting', 'color_mood', 'composition'],
+        missingDimensions: ['shot_type', 'art_style', 'lighting', 'color_mood', 'composition', 'clothing', 'mood', 'technique', 'perspective', 'texture', 'subject', 'environment'],
         recommendedOptionIds: []
       };
       return NextResponse.json(localResult);
@@ -73,7 +52,7 @@ Analyze the user's rough input and extract:
       // 降级到本地分析
       const localResult = {
         identifiedSubject: input.trim() || 'a person',
-        missingDimensions: ['shot_type', 'art_style', 'lighting', 'color_mood', 'composition'],
+        missingDimensions: ['shot_type', 'art_style', 'lighting', 'color_mood', 'composition', 'clothing', 'mood', 'technique', 'perspective', 'texture', 'subject', 'environment'],
         recommendedOptionIds: []
       };
       return NextResponse.json(localResult);
@@ -84,8 +63,9 @@ Analyze the user's rough input and extract:
     const parsedData = JSON.parse(rawText || '{}');
 
     return NextResponse.json(parsedData);
-  } catch (err: any) {
-    console.error('Analyze API Error:', err);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    console.error('Analyze API Error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

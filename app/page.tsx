@@ -21,18 +21,33 @@ export default function Home() {
     color_mood: null,
     composition: null,
     clothing: null,
+    mood: null,
+    technique: null,
+    perspective: null,
+    texture: null,
+    subject: null,
+    environment: null,
   });
+
+  const [apiError, setApiError] = useState('');
 
   // 1. 调用 LLM 分析输入缺失维度
   const handleAnalyze = async () => {
     if (!rawInput.trim()) return;
     setIsAnalyzing(true);
+    setApiError('');
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: rawInput }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setApiError(errData.error || `API 请求失败 (${res.status})`);
+        setCustomSubject(rawInput);
+        return;
+      }
       const data: AnalysisResult = await res.json();
       console.log('分析结果:', data);
 
@@ -41,6 +56,7 @@ export default function Home() {
       setRecommendedIds(data.recommendedOptionIds || []);
     } catch (err) {
       console.error('Analysis failed', err);
+      setApiError('网络错误，请检查连接');
       setCustomSubject(rawInput);
     } finally {
       setIsAnalyzing(false);
@@ -119,6 +135,9 @@ export default function Home() {
                   {customSubject}
                 </span>
               </div>
+            )}
+            {apiError && (
+              <div className="text-xs text-red-400 pt-1">{apiError}</div>
             )}
           </div>
 

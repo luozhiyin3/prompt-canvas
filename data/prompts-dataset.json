@@ -1368,12 +1368,12 @@
     "dimensions": {
       "environment": "env_urban",
       "texture": "tex_glass",
-      "composition": "comp_abstract"
+      "composition": "comp_minimal"
     },
     "tags": [
       "env_urban",
       "tex_glass",
-      "comp_abstract"
+      "comp_minimal"
     ]
   },
   {
@@ -2412,12 +2412,12 @@
     "dimensions": {
       "subject": "subj_abstract",
       "mood": "mood_mysterious",
-      "art_style": "style_surreal"
+      "art_style": "style_synthwave"
     },
     "tags": [
       "subj_abstract",
       "mood_mysterious",
-      "style_surreal"
+      "style_synthwave"
     ]
   },
   {

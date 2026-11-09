@@ -2,15 +2,7 @@
 
 import { useState } from 'react';
 import { DimensionCategory, PresetOption } from '@/types/prompt';
-
-const CATEGORY_META: Record<DimensionCategory, { labelZh: string; labelEn: string }> = {
-  shot_type: { labelZh: '景别视角', labelEn: 'Shot Type' },
-  art_style: { labelZh: '艺术风格', labelEn: 'Art Style' },
-  lighting: { labelZh: '光影渲染', labelEn: 'Lighting' },
-  color_mood: { labelZh: '色彩色调', labelEn: 'Color Mood' },
-  composition: { labelZh: '构图法则', labelEn: 'Composition' },
-  clothing: { labelZh: '服饰装扮', labelEn: 'Clothing' },
-};
+import { DIMENSION_META } from '@/config/presets';
 
 interface DimensionPanelProps {
   options: PresetOption[];
@@ -27,7 +19,7 @@ export default function DimensionPanel({
   recommendedIds,
   onSelect,
 }: DimensionPanelProps) {
-  const categories = Object.keys(CATEGORY_META) as DimensionCategory[];
+  const categories = Object.keys(DIMENSION_META) as DimensionCategory[];
   const [activeTab, setActiveTab] = useState<DimensionCategory>('art_style');
 
   const filteredOptions = options.filter((opt) => opt.category === activeTab);
@@ -50,7 +42,7 @@ export default function DimensionPanel({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <span>{CATEGORY_META[cat].labelZh}</span>
+              <span>{DIMENSION_META[cat].labelZh}</span>
               {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>}
               {isMissing && !isSelected && (
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>

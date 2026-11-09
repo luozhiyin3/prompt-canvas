@@ -54,8 +54,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ imageUrl });
-  } catch (err: any) {
-    console.error('Generate API Error:', err);
-    return NextResponse.json({ error: err.message || 'Generation failed' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Generation failed';
+    console.error('Generate API Error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

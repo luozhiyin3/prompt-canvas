@@ -1,11 +1,17 @@
 // 维度类别枚举
 export type DimensionCategory =
-  | 'shot_type'      // 景别
-  | 'art_style'      // 艺术风格
-  | 'lighting'       // 光影
-  | 'color_mood'     // 色彩氛围
-  | 'composition'    // 构图视角
-  | 'clothing';      // 服饰特征
+  | 'shot_type'
+  | 'art_style'
+  | 'lighting'
+  | 'color_mood'
+  | 'composition'
+  | 'clothing'
+  | 'mood'
+  | 'technique'
+  | 'perspective'
+  | 'texture'
+  | 'subject'
+  | 'environment';
 
 // 预置选项实体
 export interface PresetOption {

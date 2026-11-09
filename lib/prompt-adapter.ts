@@ -54,7 +54,7 @@ export function formatPromptForTool(state: GenerationCanvasState): {
   parameters?: Record<string, string>;
 } {
   const prompt = buildFinalPrompt(state);
-  const result: ReturnType<typeof formatPromptForTool> = { prompt };
+  const result: { prompt: string; negativePrompt?: string; parameters?: Record<string, string> } = { prompt };
 
   switch (state.targetTool) {
     case 'stablediffusion':
@@ -94,6 +94,12 @@ export const DIMENSION_KEYWORDS: Record<DimensionCategory, string[]> = {
   color_mood: ['色彩', '颜色', '色调', 'color', 'tone', 'palette'],
   composition: ['构图', '视角', '俯拍', '仰拍', 'composition', 'angle', 'view'],
   clothing: ['服饰', '衣服', '穿着', '服装', 'cloth', 'wear', 'dress', 'suit'],
+  mood: ['情绪', '氛围', '感觉', 'mood', 'atmosphere', 'vibe'],
+  technique: ['技法', '笔触', '画法', 'technique', 'brushstroke', 'impasto'],
+  perspective: ['透视', 'perspective', 'vanishing', 'fisheye'],
+  texture: ['材质', '纹理', '质感', 'texture', 'grain', 'surface'],
+  subject: ['主体', '人物', '风景', '建筑', 'subject', 'portrait', 'landscape'],
+  environment: ['环境', '场景', '背景', 'environment', 'scene', 'background'],
 };
 
 // 检测输入中可能已包含的维度
@@ -113,7 +119,11 @@ export function detectExistingDimensions(input: string): DimensionCategory[] {
 
 // 获取缺失的维度
 export function getMissingDimensions(input: string): DimensionCategory[] {
-  const allDimensions: DimensionCategory[] = ['shot_type', 'art_style', 'lighting', 'color_mood', 'composition'];
+  const allDimensions: DimensionCategory[] = [
+    'shot_type', 'art_style', 'lighting', 'color_mood',
+    'composition', 'clothing', 'mood', 'technique',
+    'perspective', 'texture', 'subject', 'environment',
+  ];
   const existing = detectExistingDimensions(input);
   return allDimensions.filter(dim => !existing.includes(dim));
 }
