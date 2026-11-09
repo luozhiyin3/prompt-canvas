@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" fill="#0f172a">
+    <rect x="0" y="0" width="512" height="512" rx="24" fill="#1e293b" stroke="#334155" stroke-width="4"/>
+    <text x="50%" y="45%" fill="#38bdf8" text-anchor="middle" font-size="24" font-family="sans-serif" font-weight="bold">%E5%87%A4%E5%87%B0%E6%B6%85%E6%A7%83%E7%9A%84%E7%81%AB%E7%84%B0</text>
+    <text x="50%" y="55%" fill="#64748b" text-anchor="middle" font-size="16" font-family="sans-serif">ID: 124</text>
+    <text x="50%" y="65%" fill="#64748b" text-anchor="middle" font-size="12" font-family="sans-serif">3 dimensions</text>
+  </svg>
