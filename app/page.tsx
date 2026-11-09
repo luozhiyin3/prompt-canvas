@@ -23,9 +23,6 @@ export default function Home() {
     clothing: null,
   });
 
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-
   // 1. 调用 LLM 分析输入缺失维度
   const handleAnalyze = async () => {
     if (!rawInput.trim()) return;
@@ -37,7 +34,7 @@ export default function Home() {
         body: JSON.stringify({ input: rawInput }),
       });
       const data: AnalysisResult = await res.json();
-      console.log('分析结果:', data); // 调试：查看返回数据
+      console.log('分析结果:', data);
 
       setCustomSubject(data.identifiedSubject || rawInput);
       setMissingCategories(data.missingDimensions || []);
@@ -65,27 +62,7 @@ export default function Home() {
     selectedOptions,
     customSubject: customSubject || rawInput,
     assembledPrompt: '',
-    isGeneratingImage: isGenerating,
   });
-
-  // 4. 生成/刷新参考图
-  const handleGenerate = async () => {
-    if (!currentPrompt) return;
-    setIsGenerating(true);
-    try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: currentPrompt }),
-      });
-      const data = await res.json();
-      if (data.imageUrl) setImageUrl(data.imageUrl);
-    } catch (err) {
-      console.error('Image generation error', err);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
@@ -166,14 +143,12 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 右侧输出区：即时参考图 + 组装提示词 */}
+        {/* 右侧输出区：预置参考图 + 组装提示词 */}
         <section className="lg:col-span-5 p-6 bg-slate-950 flex flex-col justify-between">
           <CanvasPreview
-            imageUrl={imageUrl}
-            isGenerating={isGenerating}
+            selectedOptions={selectedOptions}
             prompt={currentPrompt}
             targetTool={targetTool}
-            onRegenerate={handleGenerate}
           />
         </section>
       </div>

@@ -37,7 +37,7 @@ export interface GenerationCanvasState {
   customSubject: string;
   assembledPrompt: string;
   referenceImageUrl?: string;
-  isGeneratingImage: boolean;
+  isGeneratingImage?: boolean;
   analysisResult?: AnalysisResult;
 }
 
