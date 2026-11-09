@@ -62,7 +62,20 @@ Analyze the user's rough input and extract:
     const rawText = json.choices?.[0]?.message?.content;
     const parsedData = JSON.parse(rawText || '{}');
 
-    return NextResponse.json(parsedData);
+    const validCategories = ['shot_type', 'art_style', 'lighting', 'color_mood', 'composition', 'clothing', 'mood', 'technique', 'perspective', 'texture', 'subject', 'environment'];
+    const validIds = new Set(PRESET_OPTIONS.map(o => o.id));
+
+    const result = {
+      identifiedSubject: typeof parsedData.identifiedSubject === 'string' ? parsedData.identifiedSubject : (input.trim() || 'a person'),
+      missingDimensions: Array.isArray(parsedData.missingDimensions)
+        ? parsedData.missingDimensions.filter((d: string) => validCategories.includes(d))
+        : validCategories,
+      recommendedOptionIds: Array.isArray(parsedData.recommendedOptionIds)
+        ? parsedData.recommendedOptionIds.filter((id: string) => validIds.has(id))
+        : [],
+    };
+
+    return NextResponse.json(result);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal Server Error';
     console.error('Analyze API Error:', message);

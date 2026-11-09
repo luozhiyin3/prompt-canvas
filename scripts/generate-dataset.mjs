@@ -279,7 +279,7 @@ const DATASET = [
   { id: 88, prompt: '古罗马废墟的拱门', promptEn: 'arch of ancient Roman ruins', dimensions: { environment: 'env_urban', texture: 'tex_stone', mood: 'mood_melancholy' } },
   { id: 89, prompt: '摩天大楼的仰视视角', promptEn: 'low angle view of skyscraper', dimensions: { environment: 'env_urban', shot_type: 'shot_low_angle', perspective: 'persp_3point' } },
   { id: 90, prompt: '传统四合院的庭院', promptEn: 'traditional courtyard house', dimensions: { environment: 'env_interior', composition: 'comp_centered', mood: 'mood_serene' } },
-  { id: 91, prompt: '玻璃幕墙的反射', promptEn: 'glass curtain wall reflection', dimensions: { environment: 'env_urban', texture: 'tex_glass', composition: 'comp_abstract' } },
+  { id: 91, prompt: '玻璃幕墙的反射', promptEn: 'glass curtain wall reflection', dimensions: { environment: 'env_urban', texture: 'tex_glass', composition: 'comp_minimal' } },
   { id: 92, prompt: '地下铁站的几何结构', promptEn: 'geometric structure of subway station', dimensions: { environment: 'env_interior', perspective: 'persp_1point', mood: 'mood_dramatic' } },
   { id: 93, prompt: '城堡的夜景', promptEn: 'castle at night', dimensions: { environment: 'env_urban', mood: 'mood_mysterious', lighting: 'light_hard' } },
   { id: 94, prompt: '图书馆的书架长廊', promptEn: 'library bookshelf corridor', dimensions: { environment: 'env_interior', composition: 'comp_leading', mood: 'mood_serene' } },
@@ -353,7 +353,7 @@ const DATASET = [
   { id: 160, prompt: '蜗牛的螺旋壳', promptEn: 'spiral shell of snail', dimensions: { subject: 'subj_creature', composition: 'comp_golden', shot_type: 'shot_macro' } },
 
   // 抽象/超现实类 (161-200)
-  { id: 161, prompt: '时间的流动可视化', promptEn: 'visualization of time flow', dimensions: { subject: 'subj_abstract', mood: 'mood_mysterious', art_style: 'style_surreal' } },
+  { id: 161, prompt: '时间的流动可视化', promptEn: 'visualization of time flow', dimensions: { subject: 'subj_abstract', mood: 'mood_mysterious', art_style: 'style_synthwave' } },
   { id: 162, prompt: '梦境的碎片', promptEn: 'fragments of dreams', dimensions: { subject: 'subj_surreal', mood: 'mood_whimsical', color_mood: 'color_pastel' } },
   { id: 163, prompt: '音乐的视觉化', promptEn: 'visualisation of music', dimensions: { subject: 'subj_abstract', color_mood: 'color_vibrant', mood: 'mood_dramatic' } },
   { id: 164, prompt: '记忆的宫殿', promptEn: 'palace of memory', dimensions: { subject: 'subj_surreal', environment: 'env_interior', mood: 'mood_mysterious' } },
